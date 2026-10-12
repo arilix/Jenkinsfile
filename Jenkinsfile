@@ -5,11 +5,10 @@ node {
             whoami
 
             echo ==== Docker CLI ====
-            where.exe docker
-            docker --version
+            "C:\\Users\\HP\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe" --version
 
             echo ==== Docker Engine ====
-            docker info
+            "C:\\Users\\HP\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe" info
         '''
     }
 }
