@@ -2,55 +2,35 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'riset321/simple-app'
-        REGISTRY_CREDENTIALS = 'dockerhub-credentials'
         DOCKER_EXE = 'C:\\Users\\HP\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Build') {
-            steps {
-                bat 'echo "Build di Windows"'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                bat '''
-                    "%DOCKER_EXE%" build -t "%IMAGE_NAME%:%BUILD_NUMBER%" .
-                    if errorlevel 1 exit /b 1
-                '''
-            }
-        }
-
-        stage('Push Docker Image') {
+        stage('Test Docker Hub Login') {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: "${REGISTRY_CREDENTIALS}",
-                        usernameVariable: 'USER',
-                        passwordVariable: 'PASS'
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
-                    bat '''
-                        @echo off
-                        "%DOCKER_EXE%" login -u "%USER%" -p "%PASS%"
-                        if errorlevel 1 exit /b 1
+                    powershell '''
+                        $ErrorActionPreference = "Stop"
 
-                        "%DOCKER_EXE%" push "%IMAGE_NAME%:%BUILD_NUMBER%"
-                        if errorlevel 1 exit /b 1
+                        Write-Host "Menguji login Docker Hub..."
+                        Write-Host "Username credential: $env:DOCKER_USER"
 
-                        "%DOCKER_EXE%" tag "%IMAGE_NAME%:%BUILD_NUMBER%" "%IMAGE_NAME%:latest"
-                        if errorlevel 1 exit /b 1
+                        $env:DOCKER_PASS |
+                            & $env:DOCKER_EXE login `
+                                --username $env:DOCKER_USER `
+                                --password-stdin
 
-                        "%DOCKER_EXE%" push "%IMAGE_NAME%:latest"
-                        if errorlevel 1 exit /b 1
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "Login Docker Hub gagal."
+                        }
+
+                        Write-Host "Login Docker Hub berhasil."
                     '''
                 }
             }
@@ -59,7 +39,10 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline selesai.'
+            echo 'Pengujian login selesai.'
+            bat '''
+                "%DOCKER_EXE%" logout
+            '''
         }
     }
 }
